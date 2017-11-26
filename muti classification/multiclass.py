@@ -98,8 +98,9 @@ def train_classifer(train_feats, train_truths, n_epochs=30, batch_size=20):
     optimizer = optim.Adam(clf.parameters())
 
     # loss function
-    criterion = nn.MultiLabelSoftMarginLoss()
+    loss_function = nn.MultiLabelSoftMarginLoss()
 
+    all_losses = []
     for epoch in range(n_epochs):
         losses = []
         
@@ -112,19 +113,18 @@ def train_classifer(train_feats, train_truths, n_epochs=30, batch_size=20):
                 
             # forward + backward + optimize
             output = clf(input_var)
-            loss = criterion(output, label_var)
+            loss = loss_function(output, label_var)
             
             loss.backward()
             optimizer.step()
             losses.append(loss.data.mean())
-        
+        all_losses.append(np.mean(losses))
         # print statistics
         print '[{:d}/{:d}] Loss: {:.3f}'.format(epoch + 1, n_epochs, np.mean(losses))
 
     return clf
 
-def main():
-
+def prepare_args():
     parser = argparse.ArgumentParser(description="Multi classification")
     parser.add_argument('-t', '--n_train', default=1000, type=int,
             help='Number of training samples')
@@ -139,7 +139,11 @@ def main():
     parser.add_argument('-p', '--show_plot', default=False, type=bool,
             help='Number of epochs')
     
-    opts = parser.parse_args()
+    return parser.parse_args()
+
+def main():
+
+    opts = prepare_args()
 
     n_train = opts.n_train
     n_test = opts.n_test
@@ -164,6 +168,7 @@ def main():
     for x, y  in zip(test_data, test_truth):
         inputv = Variable(torch.FloatTensor(x)).view(1, -1)
         output = clf(inputv)
+        print output, output.size()
         _, pred = torch.max(output.data, 1)
 
         pred = pred[0]
